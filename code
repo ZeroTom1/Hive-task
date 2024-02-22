@@ -1,0 +1,112 @@
+CREATE DATABASE IF NOT EXISTS uni_TBAG;
+
+USE uni_TBAG;
+
+CREATE TABLE student_internal (
+    student_id INT,
+    name STRING,
+    age INT,
+    major STRING
+) 
+PARTITIONED BY (department STRING)
+ROW FORMAT DELIMITED
+FIELDS TERMINATED BY ','
+LINES TERMINATED BY '\n'
+STORED AS TEXTFILE;
+
+load data local inpath "student.txt" overwrite into table student_internal partition (department="CS");
+load data local inpath "student2.txt" overwrite into table student_internal partition (department="Physics");
+
+CREATE EXTERNAL TABLE course_external (
+    course_id INT,
+    course_name STRING,
+    department STRING,
+    credits INT
+) 
+ROW FORMAT DELIMITED
+FIELDS TERMINATED BY ','
+LINES TERMINATED BY '\n'
+LOCATION 'hdfs:///user/andb03/university_dw/enrollments';
+
+load data local inpath "course.txt" overwrite into table course_external;
+
+CREATE TABLE enrollment_dynamic_partitioned_test (
+    student_id INT,
+    course_id INT,
+semester INT,
+enrollment_year INT
+) 
+ROW FORMAT DELIMITED
+FIELDS TERMINATED BY ','
+LINES TERMINATED BY '\n'
+STORED AS TEXTFILE;
+
+load data local inpath "enrollment2.txt" overwrite into table enrollment_dynamic_partitioned_test;
+
+CREATE TABLE enrollment_dynamic_partitioned (
+    student_id INT,
+    course_id INT,
+    semester INT,
+    enrollment_year INT
+) PARTITIONED BY (enrollment_year INT)
+ROW FORMAT DELIMITED
+FIELDS TERMINATED BY ','
+LINES TERMINATED BY '\n'
+STORED AS TEXTFILE;
+
+set hive.exec.dynamic.partition=true;
+set hive.exec.dynamic.partition.mode=nonstrict;
+
+insert overwrite table enrollment_dynamic_partitioned partition(enrollment_year) select * from enrollment_dynamic_partitioned_test;
+
+CREATE TABLE student_subjects_complex_type_test (
+    student_id INT,
+    subjects ARRAY<STRING>,
+    grades MAP<STRING, INT>
+) 
+ROW FORMAT DELIMITED
+FIELDS TERMINATED BY ','
+COLLECTION ITEMS TERMINATED BY '|'
+MAP KEYS TERMINATED BY ':'
+LINES TERMINATED BY '\n'
+STORED AS TEXTFILE;
+
+load data local inpath "studentsubject2.txt" overwrite into table student_subjects_complex_type_test;
+
+CREATE TABLE student_subjects_complex_type (
+    student_id INT,
+    subjects ARRAY<STRING>,
+    grades MAP<STRING, INT>
+) 
+ROW FORMAT DELIMITED
+FIELDS TERMINATED BY ','
+COLLECTION ITEMS TERMINATED BY '|'
+MAP KEYS TERMINATED BY ':'
+LINES TERMINATED BY '\n'
+STORED AS PARQUET;
+
+insert overwrite table student_subjects_complex_type select * from student_subjects_complex_type_test;
+
+CREATE TABLE department_buckets_test (
+    course_id INT,
+    course_name STRING,
+    department STRING
+)
+ROW FORMAT DELIMITED
+FIELDS TERMINATED BY ','
+LINES TERMINATED BY '\n'
+STORED AS ORC;
+
+load data local inpath "departments.txt" overwrite into table department_buckets_test;
+
+CREATE TABLE department_buckets (
+    course_id INT,
+    course_name STRING,
+    department STRING
+) CLUSTERED BY (department) INTO 4 BUCKETS
+ROW FORMAT DELIMITED
+FIELDS TERMINATED BY ','
+LINES TERMINATED BY '\n'
+STORED AS ORC;
+
+insert overwrite table department_buckets select * from department_buckets_test;
