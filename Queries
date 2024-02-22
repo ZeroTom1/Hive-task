@@ -1,0 +1,57 @@
+QUERY:
+1. List all students and their majors:
+SELECT student_id, name, major
+FROM student_internal;
+
+2. Show courses offered by each department:
+SELECT department, COUNT(course_id) AS total_courses
+FROM course_external
+GROUP BY department;
+
+3. Find the number of enrollments per semester:
+SELECT semester, COUNT(*) AS enrollment_count
+FROM enrollment_dynamic_partitioned
+GROUP BY semester;
+
+4. Retrieve subjects and corresponding grades for a specific student:
+SELECT student_id, subjects, grades
+FROM student_subjects_complex_type
+WHERE student_id = 1;
+
+5. Display the average age of students in each department:
+SELECT department, AVG(age) AS average_age
+FROM student_internal
+GROUP BY department;
+
+6. List courses with their enrollment years:
+SELECT course_id, enrollment_year
+FROM enrollment_dynamic_partitioned;
+
+7. Count the number of students enrolled in each subject:
+SELECT subject, COUNT(DISTINCT student_id) AS student_count
+FROM (
+    SELECT student_id, EXPLODE(subjects) AS subject
+    FROM student_subjects_complex_type
+) subquery
+GROUP BY subject;
+
+8. Retrieve the course with the highest enrollment:
+SELECT course_id, COUNT(student_id) AS enrollment_count
+FROM enrollment_dynamic_partitioned
+GROUP BY course_id
+ORDER BY enrollment_count DESC
+LIMIT 1;
+
+9. List courses with their average credits per department:
+SELECT department, AVG(credits) AS average_credits
+FROM course_external
+GROUP BY department;
+
+10. Find students who are enrolled in multiple semesters:
+SELECT student_id
+FROM (
+    SELECT student_id, COUNT(DISTINCT semester) AS semester_count
+    FROM enrollment_dynamic_partitioned
+    GROUP BY student_id
+) subquery
+WHERE semester_count > 1;
